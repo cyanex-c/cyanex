@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}首页{% endblock %}
+{% block content %}
+{% if session.get('username') and user %}
+    <div class="card">
+        <h2>👋 欢迎回来，{{ session['username'] }}！</h2>
+        <div class="security-badge">✅ 安全连接已验证 | 🔒 会话已加密</div>
+
+        <h3>📋 用户信息</h3>
+        <ul class="info-list">
+            <li class="info-item"><span class="label">用户名：</span><span class="value">{{ user.username }}</span></li>
+            <li class="info-item">
+                <span class="label">角色：</span>
+                <span class="value">{% if user.role == 'admin' %}<span class="role-admin">管理员</span>{% else %}<span class="role-user">普通用户</span>{% endif %}</span>
+            </li>
+            <li class="info-item"><span class="label">邮箱：</span><span class="value">{{ user.email }}</span></li>
+            <li class="info-item"><span class="label">手机：</span><span class="value">{{ user.phone }}</span></li>
+            <li class="info-item"><span class="label">余额：</span><span class="value balance">¥{{ "{:,.2f}".format(user.balance) }}</span></li>
+            {% if user.created_at %}
+            <li class="info-item"><span class="label">注册时间：</span><span class="value">{{ user.created_at }}</span></li>
+            {% endif %}
+        </ul>
+
+        <div class="security-info">
+            <h4>🔒 安全提示</h4>
+            <ul>
+                <li>您的密码已使用 bcrypt 算法加密存储</li>
+                <li>当前会话将在 30 分钟后自动过期</li>
+                <li>建议定期修改密码</li>
+                <li>不要将密码告知他人</li>
+            </ul>
+        </div>
+
+        <div class="action-buttons">
+            <a href="/change-password" class="btn">修改密码</a>
+            <a href="/logout" class="btn btn-danger">安全退出</a>
+        </div>
+    </div>
+{% else %}
+    <div class="card welcome-card">
+        <h2>🔒 安全用户管理系统</h2>
+        <p>本系统已启用以下安全防护措施：</p>
+        <ul class="security-list">
+            <li>✅ 密码 bcrypt 加密存储</li>
+            <li>✅ CSRF 跨站请求伪造防护</li>
+            <li>✅ 登录频率限制（防暴力破解）</li>
+            <li>✅ 登录失败锁定机制</li>
+            <li>✅ Session 安全加固</li>
+            <li>✅ 安全响应头（CSP/X-Frame-Options 等）</li>
+            <li>✅ 输入消毒防 XSS</li>
+            <li>✅ 防时序攻击</li>
+            <li>✅ 防 Session 固定攻击</li>
+            <li>✅ 通用错误提示（防用户名枚举）</li>
+        </ul>
+        <a href="/login" class="btn btn-primary">前往安全登录</a>
+    </div>
+{% endif %}
+{% endblock %}

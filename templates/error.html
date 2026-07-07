@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}错误{% endblock %}
+{% block content %}
+<div class="card error-card">
+    <h2>
+        {% if code == 403 %}🚫 403 禁止访问
+        {% elif code == 404 %}🔍 404 页面未找到
+        {% elif code == 429 %}⏳ 429 请求过于频繁
+        {% elif code == 500 %}💥 500 服务器内部错误
+        {% else %}❌ 错误 {{ code }}{% endif %}
+    </h2>
+    <p>{{ message }}</p>
+    <a href="/" class="btn">返回首页</a>
+</div>
+{% endblock %}

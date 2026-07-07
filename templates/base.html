@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}安全用户管理系统{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="brand">🔒 安全用户管理系统</a>
+        </div>
+        <div class="nav-right">
+            {% if session.get('username') %}
+                <span class="nav-welcome">
+                    👤 {{ session['username'] }}
+                    {% if session.get('role') == 'admin' %}
+                        <span class="role-badge">管理员</span>
+                    {% endif %}
+                </span>
+                <a href="/change-password" class="nav-link">修改密码</a>
+                <a href="/logout" class="nav-link nav-logout">安全退出</a>
+            {% else %}
+                <a href="/login" class="nav-link">登录</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% if session.get('username') %}
+    <div class="session-info">
+        <small>会话将在 30 分钟后过期 | 已启用全部安全防护</small>
+    </div>
+    {% endif %}
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <small>安全版 v2.0 | 已启用：CSRF · 限流 · bcrypt · Session加固 · 安全头</small>
+    </footer>
+</body>
+</html>

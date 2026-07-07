@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}管理员控制台{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>🛡️ 管理员控制台</h2>
+    <p class="admin-desc">用户账户安全状态总览</p>
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>用户名</th>
+                <th>角色</th>
+                <th>失败次数</th>
+                <th>锁定状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u.username }}</td>
+                <td>{% if u.role == 'admin' %}<span class="role-admin">管理员</span>{% else %}<span class="role-user">用户</span>{% endif %}</td>
+                <td>{{ u.failed_attempts }} / 5</td>
+                <td>{% if u.locked %}<span class="status-locked">🔒 已锁定 ({{ u.locked_remaining }}s)</span>{% else %}<span class="status-active">✅ 正常</span>{% endif %}</td>
+                <td>
+                    {% if u.locked %}
+                    <form method="post" action="/admin/unlock/{{ u.username }}" style="display:inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn-small">解锁</button>
+                    </form>
+                    {% else %}<span class="text-muted">—</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

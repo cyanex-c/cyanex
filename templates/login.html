@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}登录{% endblock %}
+{% block content %}
+<div class="card login-card">
+    <h2>🔐 用户登录</h2>
+    <p class="login-desc">安全版 · 已启用全部防护措施</p>
+
+    {% if error %}
+        <div class="error-msg">⚠️ {{ error }}</div>
+    {% endif %}
+
+    {% if remaining_attempts is not none and remaining_attempts >= 0 %}
+        <div class="warning-msg">剩余尝试次数: {{ remaining_attempts }}</div>
+    {% endif %}
+
+    <form method="post" action="/login">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-group">
+            <label for="username">用户名</label>
+            <input type="text" id="username" name="username" placeholder="请输入用户名" required maxlength="20" autocomplete="username">
+        </div>
+        <div class="form-group">
+            <label for="password">密码</label>
+            <input type="password" id="password" name="password" placeholder="请输入密码" required minlength="8" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-login">安全登录</button>
+    </form>
+
+    <div class="login-footer">
+        <small>密码已使用 bcrypt 加密存储 · 登录失败 5 次将锁定 15 分钟</small>
+    </div>
+</div>
+{% endblock %}
