@@ -382,14 +382,14 @@ def register():
         email = request.form.get("email", "")
         phone = request.form.get("phone", "")
 
-        # 使用 f-string 拼接 SQL（存在 SQL 注入风险）
-        sql = f"INSERT INTO users (username, password, email, phone) VALUES ('{username}', '{password}', '{email}', '{phone}')"
-        print(f"[DEBUG-REGISTER] 执行 SQL: {sql}")
+        # 使用参数化查询防止 SQL 注入
+        sql = "INSERT INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)"
+        print(f"[DEBUG-REGISTER] 执行 SQL: {sql} 参数: {username}")
 
         try:
             conn = sqlite3.connect("data/users.db")
             c = conn.cursor()
-            c.execute(sql)
+            c.execute(sql, (username, password, email, phone))
             conn.commit()
             conn.close()
             flash("注册成功，请登录", "success")
@@ -409,14 +409,15 @@ def search():
     keyword = request.args.get("keyword", "")
     results = []
     if keyword:
-        # 使用 f-string 拼接 SQL（存在 SQL 注入风险）
-        sql = f"SELECT id, username, email, phone FROM users WHERE username LIKE '%{keyword}%' OR email LIKE '%{keyword}%'"
-        print(f"[DEBUG-SEARCH] 执行 SQL: {sql}")
+        # 使用参数化查询防止 SQL 注入
+        sql = "SELECT id, username, email, phone FROM users WHERE username LIKE ? OR email LIKE ?"
+        like_pattern = f"%{keyword}%"
+        print(f"[DEBUG-SEARCH] 执行 SQL: {sql} 参数: {like_pattern}")
 
         try:
             conn = sqlite3.connect("data/users.db")
             c = conn.cursor()
-            c.execute(sql)
+            c.execute(sql, (like_pattern, like_pattern))
             rows = c.fetchall()
             conn.close()
             for row in rows:
