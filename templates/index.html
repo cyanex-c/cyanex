@@ -6,6 +6,48 @@
         <h2>👋 欢迎回来，{{ session['username'] }}！</h2>
         <div class="security-badge">✅ 安全连接已验证 | 🔒 会话已加密</div>
 
+        <!-- 搜索功能 -->
+        <div class="search-section">
+            <h3>🔍 搜索用户</h3>
+            <form method="get" action="/search" class="search-form">
+                <input type="text" name="keyword" class="search-input"
+                       placeholder="输入用户名或邮箱搜索..."
+                       value="{{ search_keyword or '' }}">
+                <button type="submit" class="btn btn-search">搜索</button>
+            </form>
+        </div>
+
+        {% if search_results is defined and search_keyword %}
+            <div class="search-results">
+                <h3>📊 搜索结果（关键词：{{ search_keyword }}）</h3>
+                {% if search_results %}
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>手机</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in search_results %}
+                        <tr>
+                            <td>{{ row.id }}</td>
+                            <td>{{ row.username }}</td>
+                            <td>{{ row.email }}</td>
+                            <td>{{ row.phone }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p class="search-count">共找到 {{ search_results|length }} 条结果</p>
+                {% else %}
+                <div class="warning-msg">❌ 无搜索结果</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
         <h3>📋 用户信息</h3>
         <ul class="info-list">
             <li class="info-item"><span class="label">用户名：</span><span class="value">{{ user.username }}</span></li>

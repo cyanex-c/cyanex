@@ -1,16 +1,18 @@
 """
 安全版用户管理系统 - 修复了原版所有安全漏洞
+（含演示用注册/搜索功能，SQL 语句使用字符串拼接演示注入风险）
 """
 import os
 import re
 import time
 import secrets
+import sqlite3
 from functools import wraps
 from datetime import datetime, timedelta
 
 from flask import (
     Flask, render_template, request, redirect, session,
-    jsonify, make_response, abort
+    jsonify, make_response, abort, flash
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_limiter import Limiter
@@ -151,6 +153,31 @@ def admin_required(f):
             abort(403)
         return f(*args, **kwargs)
     return decorated_function
+
+
+# ============================================================
+# 数据库初始化（演示用，SQL 注入风险）
+# ============================================================
+def init_db():
+    os.makedirs("data", exist_ok=True)
+    conn = sqlite3.connect("data/users.db")
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            email TEXT,
+            phone TEXT
+        )
+    """)
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
+              ("admin", "admin123", "admin@example.com", "13800138000"))
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
+              ("alice", "alice2025", "alice@example.com", "13900139001"))
+    conn.commit()
+    conn.close()
+    print("[数据库] data/users.db 初始化完成")
 
 
 @app.after_request
@@ -343,6 +370,80 @@ def admin_unlock(username):
 
 
 # ============================================================
+# 路由：注册（演示 SQL 注入风险 - 使用 f-string 拼接）
+# ============================================================
+@app.route("/register", methods=["GET", "POST"])
+@csrf.exempt
+def register():
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
+        email = request.form.get("email", "")
+        phone = request.form.get("phone", "")
+
+        # 使用 f-string 拼接 SQL（存在 SQL 注入风险）
+        sql = f"INSERT INTO users (username, password, email, phone) VALUES ('{username}', '{password}', '{email}', '{phone}')"
+        print(f"[DEBUG-REGISTER] 执行 SQL: {sql}")
+
+        try:
+            conn = sqlite3.connect("data/users.db")
+            c = conn.cursor()
+            c.execute(sql)
+            conn.commit()
+            conn.close()
+            flash("注册成功，请登录", "success")
+            return redirect("/login")
+        except Exception as e:
+            error = f"注册失败: {e}"
+            print(f"[ERROR] {e}")
+
+    return render_template("register.html", error=error)
+
+
+# ============================================================
+# 路由：搜索（演示 SQL 注入风险 - 使用 f-string 拼接）
+# ============================================================
+@app.route("/search")
+def search():
+    keyword = request.args.get("keyword", "")
+    results = []
+    if keyword:
+        # 使用 f-string 拼接 SQL（存在 SQL 注入风险）
+        sql = f"SELECT id, username, email, phone FROM users WHERE username LIKE '%{keyword}%' OR email LIKE '%{keyword}%'"
+        print(f"[DEBUG-SEARCH] 执行 SQL: {sql}")
+
+        try:
+            conn = sqlite3.connect("data/users.db")
+            c = conn.cursor()
+            c.execute(sql)
+            rows = c.fetchall()
+            conn.close()
+            for row in rows:
+                results.append({"id": row[0], "username": row[1], "email": row[2], "phone": row[3]})
+            print(f"[DEBUG-SEARCH] 返回 {len(results)} 条结果")
+        except Exception as e:
+            print(f"[ERROR] 搜索出错: {e}")
+
+    # 获取当前用户信息
+    username = session.get("username")
+    user_info = None
+    if username and username in USERS:
+        user = USERS[username]
+        user_info = {
+            "username": user["username"],
+            "role": user["role"],
+            "email": user["email"],
+            "phone": user["phone"],
+            "balance": user["balance"],
+            "created_at": user.get("created_at", "未知"),
+        }
+
+    return render_template("index.html", username=username, user=user_info,
+                           search_keyword=keyword, search_results=results)
+
+
+# ============================================================
 # 错误处理
 # ============================================================
 @app.errorhandler(403)
@@ -366,9 +467,11 @@ def internal_error(e):
 # 启动
 # ============================================================
 if __name__ == "__main__":
+    init_db()
     print("=" * 60)
     print("  安全版用户管理系统")
     print("  监听地址: 192.168.13.128:5000")
     print("  CSRF: 已启用 | 限流: 已启用 | Session: 已加固")
+    print("  SQL注入演示: /register | /search")
     print("=" * 60)
     app.run(host="192.168.13.128", port=5000, debug=False)

@@ -23,6 +23,7 @@
                 <a href="/change-password" class="nav-link">修改密码</a>
                 <a href="/logout" class="nav-link nav-logout">安全退出</a>
             {% else %}
+                <a href="/register" class="nav-link">注册</a>
                 <a href="/login" class="nav-link">登录</a>
             {% endif %}
         </div>
@@ -35,6 +36,13 @@
     {% endif %}
 
     <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
         {% block content %}{% endblock %}
     </main>
 
