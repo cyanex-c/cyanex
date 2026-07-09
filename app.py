@@ -457,6 +457,20 @@ def upload():
     file_url = None
     error = None
 
+    # 允许的图片扩展名
+    ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"}
+    # 图片文件魔数（magic bytes）
+    IMAGE_MAGIC = {
+        b"\x89PNG\r\n\x1a\n": ".png",
+        b"\xff\xd8\xff": ".jpg",
+        b"GIF87a": ".gif",
+        b"GIF89a": ".gif",
+        b"RIFF": ".webp",  # WEBP 以 RIFF 开头
+        b"BM": ".bmp",
+        b"<?xml": ".svg",
+        b"<svg": ".svg",
+    }
+
     if request.method == "POST":
         if "file" not in request.files:
             error = "未选择文件"
@@ -465,13 +479,46 @@ def upload():
             if f.filename == "":
                 error = "文件名为空"
             else:
+                # 1. 检查文件扩展名
+                original_name = f.filename
+                ext = os.path.splitext(original_name)[1].lower()
+                if ext not in ALLOWED_EXTENSIONS:
+                    error = f"不支持的文件类型: {ext}，仅允许图片文件（{', '.join(sorted(ALLOWED_EXTENSIONS))}）"
+                    print(f"[UPLOAD-BLOCKED] {session['username']} 尝试上传禁止类型: {ext}")
+                    return render_template("upload.html", file_url=file_url, error=error)
+
                 try:
+                    # 2. 读取文件头部检测魔数
+                    file_data = f.read(32)
+                    is_image = False
+                    detected_ext = None
+                    for magic, magic_ext in IMAGE_MAGIC.items():
+                        if file_data.startswith(magic):
+                            is_image = True
+                            detected_ext = magic_ext
+                            break
+
+                    if not is_image:
+                        error = "文件内容不是有效的图片格式（魔数校验失败）"
+                        print(f"[UPLOAD-BLOCKED] {session['username']} 上传文件魔数校验失败: {original_name}")
+                        return render_template("upload.html", file_url=file_url, error=error)
+
+                    # 3. 限制文件大小（16MB）
+                    f.seek(0, os.SEEK_END)
+                    file_size = f.tell()
+                    if file_size > 16 * 1024 * 1024:
+                        error = "文件大小超过 16MB 限制"
+                        return render_template("upload.html", file_url=file_url, error=error)
+                    f.seek(0)
+
+                    # 4. 使用 UUID 重命名文件，防止路径遍历和覆盖
+                    safe_filename = f"{secrets.token_hex(16)}{detected_ext}"
                     upload_dir = os.path.join(app.root_path, "static", "uploads")
                     os.makedirs(upload_dir, exist_ok=True)
-                    save_path = os.path.join(upload_dir, f.filename)
+                    save_path = os.path.join(upload_dir, safe_filename)
                     f.save(save_path)
-                    file_url = f"/static/uploads/{f.filename}"
-                    print(f"[UPLOAD] {session['username']} 上传文件: {save_path}")
+                    file_url = f"/static/uploads/{safe_filename}"
+                    print(f"[UPLOAD] {session['username']} 上传图片: {original_name} → {safe_filename} ({file_size} bytes)")
                 except Exception as e:
                     error = f"上传失败: {e}"
 
