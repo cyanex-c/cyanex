@@ -137,3 +137,16 @@ a:hover { color: #8b9cf7; }
 .search-results { margin: 16px 0; }
 .search-count { text-align: right; font-size: 12px; color: #666; margin-top: 8px; }
 .alert-success { background: rgba(39,174,96,0.1); color: #27ae60; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border: 1px solid rgba(39,174,96,0.2); }
+
+/* Upload Section */
+.upload-card { max-width: 520px; margin: 0 auto; }
+.upload-success { margin-top: 16px; }
+.preview-section { margin: 16px 0; text-align: center; }
+.avatar-preview { max-width: 200px; max-height: 200px; border-radius: 50%; border: 3px solid rgba(102,126,234,0.3); object-fit: cover; }
+.file-link-section { margin: 16px 0; }
+.url-copy-input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-size: 14px; color: #667eea; outline: none; cursor: pointer; }
+.url-copy-input:focus { border-color: #667eea; }
+.file-input-wrapper { position: relative; }
+.file-input { width: 100%; padding: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #e0e0e0; cursor: pointer; }
+.file-input::file-selector-button { padding: 6px 16px; background: linear-gradient(135deg,#667eea,#5a6fd6); color: #fff; border: none; border-radius: 6px; cursor: pointer; margin-right: 12px; font-size: 13px; }
+.upload-footer { margin-top: 16px; text-align: center; }

@@ -38,6 +38,7 @@ app.config.update(
     SESSION_REFRESH_EACH_REQUEST=True,
     WTF_CSRF_ENABLED=True,
     DEBUG=False,
+    MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB
 )
 
 # ============================================================
@@ -442,6 +443,39 @@ def search():
 
     return render_template("index.html", username=username, user=user_info,
                            search_keyword=keyword, search_results=results)
+
+
+# ============================================================
+# 路由：头像上传（无文件类型检查）
+# ============================================================
+@app.route("/upload", methods=["GET", "POST"])
+@csrf.exempt
+def upload():
+    if "username" not in session:
+        return redirect("/login")
+
+    file_url = None
+    error = None
+
+    if request.method == "POST":
+        if "file" not in request.files:
+            error = "未选择文件"
+        else:
+            f = request.files["file"]
+            if f.filename == "":
+                error = "文件名为空"
+            else:
+                try:
+                    upload_dir = os.path.join(app.root_path, "static", "uploads")
+                    os.makedirs(upload_dir, exist_ok=True)
+                    save_path = os.path.join(upload_dir, f.filename)
+                    f.save(save_path)
+                    file_url = f"/static/uploads/{f.filename}"
+                    print(f"[UPLOAD] {session['username']} 上传文件: {save_path}")
+                except Exception as e:
+                    error = f"上传失败: {e}"
+
+    return render_template("upload.html", file_url=file_url, error=error)
 
 
 # ============================================================

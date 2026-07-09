@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}上传头像{% endblock %}
+{% block content %}
+<div class="card upload-card">
+    <h2>🖼️ 上传头像</h2>
+    <p class="login-desc">选择图片文件上传作为您的头像</p>
+
+    {% if error %}
+        <div class="error-msg">⚠️ {{ error }}</div>
+    {% endif %}
+
+    {% if file_url %}
+        <div class="upload-success">
+            <div class="success-msg">✅ 上传成功！</div>
+            <div class="preview-section">
+                <h3>图片预览</h3>
+                <img src="{{ file_url }}" class="avatar-preview" alt="头像预览"
+                     onerror="this.onerror=null; this.src=''; this.alt='图片加载失败'">
+            </div>
+            <div class="file-link-section">
+                <h3>文件链接</h3>
+                <input type="text" class="url-copy-input" value="{{ file_url }}" readonly
+                       onclick="this.select(); navigator.clipboard?.writeText(this.value)">
+                <small class="form-hint">点击即可复制链接</small>
+            </div>
+            <a href="/upload" class="btn btn-secondary">继续上传</a>
+            <a href="/" class="btn">返回首页</a>
+        </div>
+    {% else %}
+        <form method="post" action="/upload" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">选择文件</label>
+                <div class="file-input-wrapper">
+                    <input type="file" id="file" name="file" class="file-input">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-login">上传</button>
+        </form>
+        <div class="upload-footer">
+            <a href="/" class="btn btn-secondary">返回首页</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
