@@ -172,10 +172,15 @@ def init_db():
             phone TEXT
         )
     """)
-    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
-              ("admin", "admin123", "admin@example.com", "13800138000"))
-    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
-              ("alice", "alice2025", "alice@example.com", "13900139001"))
+    # 添加 balance 列（如果不存在）
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN balance REAL DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # 列已存在
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone, balance) VALUES (?, ?, ?, ?, ?)",
+              ("admin", "admin123", "admin@example.com", "13800138000", 99999))
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone, balance) VALUES (?, ?, ?, ?, ?)",
+              ("alice", "alice2025", "alice@example.com", "13900139001", 100))
     conn.commit()
     conn.close()
     print("[数据库] data/users.db 初始化完成")
@@ -384,13 +389,13 @@ def register():
         phone = request.form.get("phone", "")
 
         # 使用参数化查询防止 SQL 注入
-        sql = "INSERT INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)"
+        sql = "INSERT INTO users (username, password, email, phone, balance) VALUES (?, ?, ?, ?, ?)"
         print(f"[DEBUG-REGISTER] 执行 SQL: {sql} 参数: {username}")
 
         try:
             conn = sqlite3.connect("data/users.db")
             c = conn.cursor()
-            c.execute(sql, (username, password, email, phone))
+            c.execute(sql, (username, password, email, phone, 0))
             conn.commit()
             conn.close()
             flash("注册成功，请登录", "success")
@@ -523,6 +528,67 @@ def upload():
                     error = f"上传失败: {e}"
 
     return render_template("upload.html", file_url=file_url, error=error)
+
+
+# ============================================================
+# 路由：个人中心（无权限控制，可通过 URL 参数查看任意用户）
+# ============================================================
+@app.route("/profile")
+def profile():
+    user_id = request.args.get("user_id", "")
+    user_data = None
+    error = None
+
+    if user_id:
+        try:
+            conn = sqlite3.connect("data/users.db")
+            c = conn.cursor()
+            sql = f"SELECT id, username, email, phone, balance FROM users WHERE id = {user_id}"
+            print(f"[PROFILE] 执行 SQL: {sql}")
+            c.execute(sql)
+            row = c.fetchone()
+            conn.close()
+            if row:
+                user_data = {
+                    "id": row[0],
+                    "username": row[1],
+                    "email": row[2],
+                    "phone": row[3],
+                    "balance": row[4],
+                }
+            else:
+                error = "用户不存在"
+        except Exception as e:
+            error = f"查询失败: {e}"
+    else:
+        error = "请提供 user_id 参数"
+
+    return render_template("profile.html", user=user_data, error=error)
+
+
+# ============================================================
+# 路由：充值（无金额校验，负数也可充值）
+# ============================================================
+@app.route("/recharge", methods=["POST"])
+@csrf.exempt
+def recharge():
+    user_id = request.form.get("user_id", "")
+    amount = request.form.get("amount", "0")
+
+    try:
+        amount = float(amount)
+        conn = sqlite3.connect("data/users.db")
+        c = conn.cursor()
+        sql = f"UPDATE users SET balance = balance + {amount} WHERE id = {user_id}"
+        print(f"[RECHARGE] 执行 SQL: {sql}")
+        c.execute(sql)
+        conn.commit()
+        conn.close()
+        flash(f"充值成功！金额: {amount}", "success")
+    except Exception as e:
+        flash(f"充值失败: {e}", "error")
+
+    return redirect(f"/profile?user_id={user_id}")
 
 
 # ============================================================
