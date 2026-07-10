@@ -531,64 +531,71 @@ def upload():
 
 
 # ============================================================
-# 路由：个人中心（无权限控制，可通过 URL 参数查看任意用户）
+# 路由：个人中心（仅限查看自己资料）
 # ============================================================
 @app.route("/profile")
 def profile():
-    user_id = request.args.get("user_id", "")
+    if "username" not in session:
+        return redirect("/login")
+
+    username = session["username"]
     user_data = None
     error = None
 
-    if user_id:
-        try:
-            conn = sqlite3.connect("data/users.db")
-            c = conn.cursor()
-            sql = f"SELECT id, username, email, phone, balance FROM users WHERE id = {user_id}"
-            print(f"[PROFILE] 执行 SQL: {sql}")
-            c.execute(sql)
-            row = c.fetchone()
-            conn.close()
-            if row:
-                user_data = {
-                    "id": row[0],
-                    "username": row[1],
-                    "email": row[2],
-                    "phone": row[3],
-                    "balance": row[4],
-                }
-            else:
-                error = "用户不存在"
-        except Exception as e:
-            error = f"查询失败: {e}"
-    else:
-        error = "请提供 user_id 参数"
+    try:
+        conn = sqlite3.connect("data/users.db")
+        c = conn.cursor()
+        sql = "SELECT id, username, email, phone, balance FROM users WHERE username = ?"
+        print(f"[PROFILE] 执行 SQL: {sql} 参数: {username}")
+        c.execute(sql, (username,))
+        row = c.fetchone()
+        conn.close()
+        if row:
+            user_data = {
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "phone": row[3],
+                "balance": row[4],
+            }
+        else:
+            error = "用户不存在"
+    except Exception as e:
+        error = f"查询失败: {e}"
 
     return render_template("profile.html", user=user_data, error=error)
 
 
 # ============================================================
-# 路由：充值（无金额校验，负数也可充值）
+# 路由：充值（仅限给自己的账户充值）
 # ============================================================
 @app.route("/recharge", methods=["POST"])
 @csrf.exempt
 def recharge():
-    user_id = request.form.get("user_id", "")
+    if "username" not in session:
+        return redirect("/login")
+
     amount = request.form.get("amount", "0")
 
     try:
         amount = float(amount)
+        if amount <= 0:
+            flash("充值金额必须大于 0", "error")
+            return redirect("/profile")
+
+        username = session["username"]
         conn = sqlite3.connect("data/users.db")
         c = conn.cursor()
-        sql = f"UPDATE users SET balance = balance + {amount} WHERE id = {user_id}"
-        print(f"[RECHARGE] 执行 SQL: {sql}")
-        c.execute(sql)
+        sql = "UPDATE users SET balance = balance + ? WHERE username = ?"
+        print(f"[RECHARGE] 执行 SQL: {sql} 参数: {amount}, {username}")
+        c.execute(sql, (amount, username))
         conn.commit()
         conn.close()
-        flash(f"充值成功！金额: {amount}", "success")
+        flash(f"充值成功！金额: {amount:.2f}", "success")
     except Exception as e:
         flash(f"充值失败: {e}", "error")
 
-    return redirect(f"/profile?user_id={user_id}")
+    return redirect("/profile")
 
 
 # ============================================================
