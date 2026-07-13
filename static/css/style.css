@@ -150,3 +150,13 @@ a:hover { color: #8b9cf7; }
 .file-input { width: 100%; padding: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #e0e0e0; cursor: pointer; }
 .file-input::file-selector-button { padding: 6px 16px; background: linear-gradient(135deg,#667eea,#5a6fd6); color: #fff; border: none; border-radius: 6px; cursor: pointer; margin-right: 12px; font-size: 13px; }
 .upload-footer { margin-top: 16px; text-align: center; }
+
+/* Dynamic Page */
+.dynamic-page h1 { font-size: 24px; margin-bottom: 8px; color: #e0e0e0; }
+.dynamic-page h2 { font-size: 18px; margin: 16px 0 8px; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px; }
+.dynamic-page h3 { font-size: 15px; margin: 12px 0 4px; color: #aaa; }
+.dynamic-page p { margin: 6px 0; color: #bbb; line-height: 1.7; }
+.dynamic-page ul { margin: 8px 0; padding-left: 20px; }
+.dynamic-page li { margin: 4px 0; color: #bbb; }
+.dynamic-page hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 16px 0; }
+.dynamic-page .help-footer { color: #666; font-size: 12px; text-align: center; margin-top: 20px; }

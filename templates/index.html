@@ -1,7 +1,24 @@
 {% extends "base.html" %}
 {% block title %}首页{% endblock %}
 {% block content %}
-{% if session.get('username') and user %}
+
+{# 动态页面内容显示 #}
+{% if page_content is defined and page_content %}
+    <div class="card dynamic-page">
+        {{ page_content | safe }}
+        <div class="action-buttons" style="margin-top:16px">
+            <a href="/" class="btn">返回首页</a>
+        </div>
+    </div>
+{% elif page_error is defined and page_error %}
+    <div class="card">
+        <h2>📄 页面加载</h2>
+        <div class="error-msg">⚠️ {{ page_error }}</div>
+        <div class="action-buttons">
+            <a href="/" class="btn">返回首页</a>
+        </div>
+    </div>
+{% elif session.get('username') and user %}
     <div class="card">
         <h2>👋 欢迎回来，{{ session['username'] }}！</h2>
         <div class="security-badge">✅ 安全连接已验证 | 🔒 会话已加密</div>
@@ -74,6 +91,7 @@
         </div>
 
         <div class="action-buttons">
+            <a href="/page?name=help" class="btn">帮助中心</a>
             <a href="/profile" class="btn">个人中心</a>
             <a href="/upload" class="btn">上传头像</a>
             <a href="/change-password" class="btn">修改密码</a>

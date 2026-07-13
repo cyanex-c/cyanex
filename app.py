@@ -599,6 +599,52 @@ def recharge():
 
 
 # ============================================================
+# 路由：动态页面加载（路径遍历漏洞演示）
+# ============================================================
+@app.route("/page")
+def dynamic_page():
+    name = request.args.get("name", "")
+    page_content = None
+    error = None
+
+    if name:
+        # 直接拼接用户输入的路径，不做任何校验
+        page_path = os.path.join("pages", name)
+        print(f"[PAGE] 尝试加载: {page_path}")
+
+        if os.path.exists(page_path):
+            with open(page_path, "r", encoding="utf-8") as f:
+                page_content = f.read()
+        else:
+            # 尝试加上 .html 后缀
+            page_path_html = page_path + ".html"
+            print(f"[PAGE] 尝试加载: {page_path_html}")
+            if os.path.exists(page_path_html):
+                with open(page_path_html, "r", encoding="utf-8") as f:
+                    page_content = f.read()
+            else:
+                error = "页面不存在"
+
+    # 获取当前用户信息
+    username = session.get("username")
+    user_info = None
+    if username and username in USERS:
+        user = USERS[username]
+        user_info = {
+            "username": user["username"],
+            "role": user["role"],
+            "email": user["email"],
+            "phone": user["phone"],
+            "balance": user["balance"],
+            "created_at": user.get("created_at", "未知"),
+        }
+
+    return render_template("index.html", username=username, user=user_info,
+                           page_content=page_content, page_error=error,
+                           page_name=name)
+
+
+# ============================================================
 # 错误处理
 # ============================================================
 @app.errorhandler(403)
