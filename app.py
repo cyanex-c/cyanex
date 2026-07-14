@@ -306,25 +306,44 @@ def logout():
 
 
 # ============================================================
-# 路由：修改密码（漏洞版 — 任意已登录用户可修改任意用户密码）
+# 路由：修改密码（已修复 CSRF 漏洞）
 # ============================================================
 @app.route("/change-password", methods=["POST"])
-@csrf.exempt
 def change_password():
-    # 只要登录即可，不验证 session 用户与目标用户是否一致
     if "username" not in session:
         return redirect("/login")
 
-    username = request.form.get("username", "")
+    # 从 session 获取当前登录用户（不从表单拿 username）
+    username = session["username"]
+    current_password = request.form.get("current_password", "")
     new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
 
-    # 不验证原密码，直接更新
-    if username in USERS:
-        USERS[username]["password_hash"] = _hash(new_password)
-        # 重置登录失败计数
-        USERS[username]["failed_attempts"] = 0
-        USERS[username]["locked_until"] = None
-        print(f"[CHANGE-PASSWORD] {session['username']} 将 {username} 的密码修改为: {new_password}")
+    if username not in USERS:
+        flash("用户不存在", "error")
+        return redirect("/profile")
+
+    # 验证原密码
+    if not check_password_hash(USERS[username]["password_hash"], current_password):
+        flash("当前密码错误", "error")
+        return redirect("/profile")
+
+    # 验证两次新密码一致
+    if new_password != confirm_password:
+        flash("两次输入的新密码不一致", "error")
+        return redirect("/profile")
+
+    # 密码强度校验
+    if len(new_password) < 4:
+        flash("密码长度至少 4 位", "error")
+        return redirect("/profile")
+
+    # 更新密码
+    USERS[username]["password_hash"] = _hash(new_password)
+    USERS[username]["failed_attempts"] = 0
+    USERS[username]["locked_until"] = None
+    print(f"[CHANGE-PASSWORD] {username} 修改了密码")
+    flash("密码修改成功！", "success")
 
     return redirect("/profile")
 
@@ -368,7 +387,6 @@ def admin_unlock(username):
 # 路由：注册（演示 SQL 注入风险 - 使用 f-string 拼接）
 # ============================================================
 @app.route("/register", methods=["GET", "POST"])
-@csrf.exempt
 def register():
     error = None
     if request.method == "POST":
@@ -393,7 +411,7 @@ def register():
             error = f"注册失败: {e}"
             print(f"[ERROR] {e}")
 
-    return render_template("register.html", error=error)
+    return render_template("register.html", error=error, csrf_token=generate_csrf())
 
 
 # ============================================================
@@ -443,7 +461,6 @@ def search():
 # 路由：头像上传（无文件类型检查）
 # ============================================================
 @app.route("/upload", methods=["GET", "POST"])
-@csrf.exempt
 def upload():
     if "username" not in session:
         return redirect("/login")
@@ -479,7 +496,7 @@ def upload():
                 if ext not in ALLOWED_EXTENSIONS:
                     error = f"不支持的文件类型: {ext}，仅允许图片文件（{', '.join(sorted(ALLOWED_EXTENSIONS))}）"
                     print(f"[UPLOAD-BLOCKED] {session['username']} 尝试上传禁止类型: {ext}")
-                    return render_template("upload.html", file_url=file_url, error=error)
+                    return render_template("upload.html", file_url=file_url, error=error, csrf_token=generate_csrf())
 
                 try:
                     # 2. 读取文件头部检测魔数
@@ -495,14 +512,14 @@ def upload():
                     if not is_image:
                         error = "文件内容不是有效的图片格式（魔数校验失败）"
                         print(f"[UPLOAD-BLOCKED] {session['username']} 上传文件魔数校验失败: {original_name}")
-                        return render_template("upload.html", file_url=file_url, error=error)
+                        return render_template("upload.html", file_url=file_url, error=error, csrf_token=generate_csrf())
 
                     # 3. 限制文件大小（16MB）
                     f.seek(0, os.SEEK_END)
                     file_size = f.tell()
                     if file_size > 16 * 1024 * 1024:
                         error = "文件大小超过 16MB 限制"
-                        return render_template("upload.html", file_url=file_url, error=error)
+                        return render_template("upload.html", file_url=file_url, error=error, csrf_token=generate_csrf())
                     f.seek(0)
 
                     # 4. 使用 UUID 重命名文件，防止路径遍历和覆盖
@@ -516,7 +533,7 @@ def upload():
                 except Exception as e:
                     error = f"上传失败: {e}"
 
-    return render_template("upload.html", file_url=file_url, error=error)
+    return render_template("upload.html", file_url=file_url, error=error, csrf_token=generate_csrf())
 
 
 # ============================================================
@@ -552,14 +569,14 @@ def profile():
     except Exception as e:
         error = f"查询失败: {e}"
 
-    return render_template("profile.html", user=user_data, error=error)
+    return render_template("profile.html", user=user_data, error=error,
+                           csrf_token=generate_csrf())
 
 
 # ============================================================
 # 路由：充值（仅限给自己的账户充值）
 # ============================================================
 @app.route("/recharge", methods=["POST"])
-@csrf.exempt
 def recharge():
     if "username" not in session:
         return redirect("/login")

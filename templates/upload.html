@@ -28,6 +28,7 @@
         </div>
     {% else %}
         <form method="post" action="/upload" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="form-group">
                 <label for="file">选择文件</label>
                 <div class="file-input-wrapper">
