@@ -306,38 +306,27 @@ def logout():
 
 
 # ============================================================
-# 路由：修改密码
+# 路由：修改密码（漏洞版 — 任意已登录用户可修改任意用户密码）
 # ============================================================
-@app.route("/change-password", methods=["GET", "POST"])
-@login_required
+@app.route("/change-password", methods=["POST"])
+@csrf.exempt
 def change_password():
-    error = None
-    success = None
-    username = session["username"]
+    # 只要登录即可，不验证 session 用户与目标用户是否一致
+    if "username" not in session:
+        return redirect("/login")
 
-    if request.method == "POST":
-        current_pw = request.form.get("current_password", "")
-        new_pw = request.form.get("new_password", "")
-        confirm_pw = request.form.get("confirm_password", "")
+    username = request.form.get("username", "")
+    new_password = request.form.get("new_password", "")
 
-        if not check_password_hash(USERS[username]["password_hash"], current_pw):
-            error = "当前密码错误"
-        elif new_pw != confirm_pw:
-            error = "两次输入的新密码不一致"
-        elif len(new_pw) < PASSWORD_MIN_LENGTH:
-            error = f"密码长度至少 {PASSWORD_MIN_LENGTH} 位"
-        elif not PASSWORD_REGEX.match(new_pw):
-            error = "密码必须包含大小写字母、数字和特殊字符"
-        else:
-            USERS[username]["password_hash"] = _hash(new_pw)
-            success = "密码修改成功！下次登录请使用新密码。"
+    # 不验证原密码，直接更新
+    if username in USERS:
+        USERS[username]["password_hash"] = _hash(new_password)
+        # 重置登录失败计数
+        USERS[username]["failed_attempts"] = 0
+        USERS[username]["locked_until"] = None
+        print(f"[CHANGE-PASSWORD] {session['username']} 将 {username} 的密码修改为: {new_password}")
 
-    return render_template(
-        "change_password.html",
-        error=error,
-        success=success,
-        csrf_token=generate_csrf(),
-    )
+    return redirect("/profile")
 
 
 # ============================================================
