@@ -7,6 +7,8 @@ import re
 import time
 import secrets
 import sqlite3
+import urllib.request
+import urllib.error
 from functools import wraps
 from datetime import datetime, timedelta
 
@@ -223,7 +225,7 @@ def index():
             "balance": user["balance"],
             "created_at": user.get("created_at", "未知"),
         }
-    return render_template("index.html", username=username, user=user_info)
+    return render_template("index.html", username=username, user=user_info, csrf_token=generate_csrf())
 
 
 # ============================================================
@@ -275,7 +277,7 @@ def login():
                 "phone": user["phone"],
                 "balance": user["balance"],
             }
-            return render_template("index.html", username=username, user=user_info)
+            return render_template("index.html", username=username, user=user_info, csrf_token=generate_csrf())
         else:
             just_locked = record_failed_attempt(username)
             attempts_left = MAX_LOGIN_ATTEMPTS - USERS[username].get("failed_attempts", 0)
@@ -453,7 +455,7 @@ def search():
             "created_at": user.get("created_at", "未知"),
         }
 
-    return render_template("index.html", username=username, user=user_info,
+    return render_template("index.html", username=username, user=user_info, csrf_token=generate_csrf(),
                            search_keyword=keyword, search_results=results)
 
 
@@ -645,9 +647,61 @@ def dynamic_page():
             "created_at": user.get("created_at", "未知"),
         }
 
-    return render_template("index.html", username=username, user=user_info,
+    return render_template("index.html", username=username, user=user_info, csrf_token=generate_csrf(),
                            page_content=page_content, page_error=error,
                            page_name=name)
+
+
+# ============================================================
+# 路由：URL 抓取（SSRF 漏洞演示）
+# ============================================================
+@app.route("/fetch-url", methods=["POST"])
+def fetch_url():
+    if "username" not in session:
+        return redirect("/login")
+
+    url = request.form.get("url", "")
+    result_status = None
+    result_content = None
+    error = None
+
+    if url:
+        try:
+            print(f"[FETCH-URL] {session['username']} 请求: {url}")
+            resp = urllib.request.urlopen(url, timeout=10)
+            result_status = resp.status
+            content = resp.read().decode("utf-8", errors="replace")
+            result_content = content[:5000]
+            print(f"[FETCH-URL] 状态: {result_status}, 内容长度: {len(content)}")
+        except urllib.error.HTTPError as e:
+            result_status = e.code
+            result_content = str(e)
+            print(f"[FETCH-URL] HTTP错误: {e.code}")
+        except urllib.error.URLError as e:
+            error = f"URL 请求失败: {e.reason}"
+            print(f"[FETCH-URL] URL错误: {e.reason}")
+        except Exception as e:
+            error = f"请求出错: {e}"
+            print(f"[FETCH-URL] 异常: {e}")
+
+    # 获取当前用户信息
+    username = session.get("username")
+    user_info = None
+    if username and username in USERS:
+        user = USERS[username]
+        user_info = {
+            "username": user["username"],
+            "role": user["role"],
+            "email": user["email"],
+            "phone": user["phone"],
+            "balance": user["balance"],
+            "created_at": user.get("created_at", "未知"),
+        }
+
+    return render_template("index.html", username=username, user=user_info,
+                           fetch_url=url, fetch_status=result_status,
+                           fetch_content=result_content, fetch_error=error,
+                           csrf_token=generate_csrf())
 
 
 # ============================================================

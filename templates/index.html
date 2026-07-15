@@ -65,6 +65,35 @@
             </div>
         {% endif %}
 
+        <!-- URL 抓取功能 -->
+        <div class="search-section">
+            <h3>🌐 URL 抓取</h3>
+            <form method="post" action="/fetch-url" class="search-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="text" name="url" class="search-input"
+                       placeholder="输入 URL 抓取内容（如 http://example.com）"
+                       value="{{ fetch_url or '' }}">
+                <button type="submit" class="btn btn-search">抓取</button>
+            </form>
+        </div>
+
+        {% if fetch_status is defined or fetch_error is defined %}
+            <div class="fetch-results">
+                {% if fetch_error %}
+                    <div class="error-msg">⚠️ 抓取失败: {{ fetch_error }}</div>
+                {% elif fetch_status %}
+                    <h3>📡 抓取结果</h3>
+                    <div class="fetch-meta">
+                        <span class="label">状态码：</span>
+                        <span class="fetch-status-code {% if fetch_status >= 400 %}status-error{% else %}status-ok{% endif %}">{{ fetch_status }}</span>
+                    </div>
+                    <div class="fetch-content-box">
+                        <pre class="fetch-content">{{ fetch_content }}</pre>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
         <h3>📋 用户信息</h3>
         <ul class="info-list">
             <li class="info-item"><span class="label">用户名：</span><span class="value">{{ user.username }}</span></li>
