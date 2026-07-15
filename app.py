@@ -7,8 +7,10 @@ import re
 import time
 import secrets
 import sqlite3
+import socket
 import urllib.request
 import urllib.error
+import urllib.parse
 from functools import wraps
 from datetime import datetime, timedelta
 
@@ -653,7 +655,51 @@ def dynamic_page():
 
 
 # ============================================================
-# 路由：URL 抓取（SSRF 漏洞演示）
+# URL 安全校验函数（防 SSRF）
+# ============================================================
+PRIVATE_IP_PATTERNS = [
+    re.compile(r"^127\.\d+\.\d+\.\d+$"),
+    re.compile(r"^10\.\d+\.\d+\.\d+$"),
+    re.compile(r"^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$"),
+    re.compile(r"^192\.168\.\d+\.\d+$"),
+    re.compile(r"^0\.\d+\.\d+\.\d+$"),
+    re.compile(r"^169\.254\.\d+\.\d+$"),
+    re.compile(r"^100\.(6[4-9]|\d{2,3})\.\d+\.\d+$"),
+]
+
+BLOCKED_HOSTS = {"localhost", "127.0.0.1", "127.1", "0", "0.0.0.0", "::1", "[::1]"}
+
+ALLOWED_PROTOCOLS = {"http", "https"}
+
+def validate_url_safety(url):
+    """验证 URL 安全性，防止 SSRF 攻击"""
+    # 1. 解析 URL
+    parsed = urllib.parse.urlparse(url)
+    scheme = parsed.scheme.lower()
+
+    # 2. 只允许 http/https
+    if scheme not in ALLOWED_PROTOCOLS:
+        return False, f"不允许的协议: {scheme}，仅支持 http/https"
+
+    # 3. 检查 host
+    hostname = parsed.hostname.lower()
+    if hostname in BLOCKED_HOSTS:
+        return False, f"不允许访问: {hostname}"
+
+    # 4. 检查是否为内网 IP
+    try:
+        ip = socket.gethostbyname(hostname)
+        for pattern in PRIVATE_IP_PATTERNS:
+            if pattern.match(ip):
+                return False, f"不允许访问内网地址: {ip}"
+    except socket.gaierror:
+        return False, f"域名解析失败: {hostname}"
+
+    return True, None
+
+
+# ============================================================
+# 路由：URL 抓取（已修复 SSRF 漏洞）
 # ============================================================
 @app.route("/fetch-url", methods=["POST"])
 def fetch_url():
@@ -666,23 +712,30 @@ def fetch_url():
     error = None
 
     if url:
-        try:
-            print(f"[FETCH-URL] {session['username']} 请求: {url}")
-            resp = urllib.request.urlopen(url, timeout=10)
-            result_status = resp.status
-            content = resp.read().decode("utf-8", errors="replace")
-            result_content = content[:5000]
-            print(f"[FETCH-URL] 状态: {result_status}, 内容长度: {len(content)}")
-        except urllib.error.HTTPError as e:
-            result_status = e.code
-            result_content = str(e)
-            print(f"[FETCH-URL] HTTP错误: {e.code}")
-        except urllib.error.URLError as e:
-            error = f"URL 请求失败: {e.reason}"
-            print(f"[FETCH-URL] URL错误: {e.reason}")
-        except Exception as e:
-            error = f"请求出错: {e}"
-            print(f"[FETCH-URL] 异常: {e}")
+        # SSRF 安全校验
+        is_safe, err_msg = validate_url_safety(url)
+        if not is_safe:
+            error = f"URL 被拒绝: {err_msg}"
+            print(f"[FETCH-URL-BLOCKED] {session['username']} 尝试访问被拒绝的URL: {url}")
+        else:
+            try:
+                print(f"[FETCH-URL] {session['username']} 请求: {url}")
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                resp = urllib.request.urlopen(req, timeout=10)
+                result_status = resp.status
+                content = resp.read().decode("utf-8", errors="replace")
+                result_content = content[:5000]
+                print(f"[FETCH-URL] 状态: {result_status}, 内容长度: {len(content)}")
+            except urllib.error.HTTPError as e:
+                result_status = e.code
+                result_content = str(e)
+                print(f"[FETCH-URL] HTTP错误: {e.code}")
+            except urllib.error.URLError as e:
+                error = f"URL 请求失败: {e.reason}"
+                print(f"[FETCH-URL] URL错误: {e.reason}")
+            except Exception as e:
+                error = f"请求出错: {e}"
+                print(f"[FETCH-URL] 异常: {e}")
 
     # 获取当前用户信息
     username = session.get("username")
