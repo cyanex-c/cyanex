@@ -20,8 +20,8 @@
     </div>
 {% elif session.get('username') and user %}
     <div class="card">
-        <h2>👋 欢迎回来，{{ session['username'] }}！</h2>
-        <div class="security-badge">✅ 安全连接已验证 | 🔒 会话已加密</div>
+        <h2>👋 欢迎回来，<span style="background:linear-gradient(135deg,#667eea,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent">{{ session['username'] }}</span>！</h2>
+        <div class="security-badge">✦ 安全连接已验证 · 会话已加密</div>
 
         <!-- 搜索功能 -->
         <div class="search-section">

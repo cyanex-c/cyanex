@@ -4,25 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}安全用户管理系统{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-left">
-            <a href="/" class="brand">🔒 安全用户管理系统</a>
+            <a href="/" class="brand">✦ 安全用户管理系统</a>
         </div>
         <div class="nav-right">
             {% if session.get('username') %}
                 <span class="nav-welcome">
-                    👤 {{ session['username'] }}
+                    <span class="nav-avatar">👤</span>
+                    {{ session['username'] }}
                     {% if session.get('role') == 'admin' %}
                         <span class="role-badge">管理员</span>
                     {% endif %}
                 </span>
                 <a href="/profile" class="nav-link">个人中心</a>
                 <a href="/upload" class="nav-link">上传头像</a>
-                <a href="/logout" class="nav-link nav-logout">安全退出</a>
+                <a href="/logout" class="nav-link nav-logout">退出</a>
             {% else %}
                 <a href="/register" class="nav-link">注册</a>
                 <a href="/login" class="nav-link">登录</a>
@@ -32,7 +36,9 @@
 
     {% if session.get('username') %}
     <div class="session-info">
-        <small>会话将在 30 分钟后过期 | 已启用全部安全防护</small>
+        <span>●</span> 会话将在 30 分钟后过期
+        <span style="margin:0 12px;opacity:0.2">|</span>
+        <span>●</span> 已启用全部安全防护
     </div>
     {% endif %}
 
@@ -48,7 +54,12 @@
     </main>
 
     <footer class="footer">
-        <small>安全版 v2.0 | 已启用：CSRF · 限流 · bcrypt · Session加固 · 安全头</small>
+        <div class="footer-links">
+            <a href="/page?name=help">帮助中心</a>
+            <span class="footer-divider">·</span>
+            <a href="https://github.com/cyanex-c/cyanex" target="_blank">GitHub</a>
+        </div>
+        <small>安全版 v2.7 · 已启用 CSRF · 限流 · bcrypt · Session加固 · 安全头</small>
     </footer>
 </body>
 </html>
