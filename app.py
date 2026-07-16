@@ -8,6 +8,8 @@ import time
 import secrets
 import sqlite3
 import socket
+import subprocess
+import platform
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -755,6 +757,37 @@ def fetch_url():
                            fetch_url=url, fetch_status=result_status,
                            fetch_content=result_content, fetch_error=error,
                            csrf_token=generate_csrf())
+
+
+# ============================================================
+# 路由：Ping 网络诊断（命令注入漏洞演示）
+# ============================================================
+@app.route("/ping", methods=["GET", "POST"])
+def ping():
+    if "username" not in session:
+        return redirect("/login")
+
+    result = None
+    error = None
+
+    if request.method == "POST":
+        ip = request.form.get("ip", "")
+        if ip:
+            try:
+                command = f"ping -c 3 {ip}"
+                print(f"[PING] {session['username']} 执行命令: {command}")
+                result = subprocess.check_output(command, shell=True, timeout=30, stderr=subprocess.STDOUT)
+                result = result.decode("utf-8", errors="replace")
+                print(f"[PING] 执行成功，输出 {len(result)} 字符")
+            except subprocess.CalledProcessError as e:
+                result = e.output.decode("utf-8", errors="replace")
+                error = f"命令执行返回非零退出码: {e.returncode}"
+            except subprocess.TimeoutExpired:
+                error = "命令执行超时（30秒）"
+            except Exception as e:
+                error = f"执行出错: {e}"
+
+    return render_template("ping.html", result=result, error=error, csrf_token=generate_csrf())
 
 
 # ============================================================

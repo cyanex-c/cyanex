@@ -929,6 +929,19 @@ a:hover { color: var(--accent-light); }
     100% { background-position: 200px 0; }
 }
 
+/* ===== Ping Console ===== */
+.ping-card { max-width: 640px; margin: 0 auto; }
+.ping-input-group { display: flex; gap: 10px; }
+.ping-input-group .search-input { flex: 1; }
+.ping-form { margin-top: 8px; }
+.ping-output { margin-top: 20px; background: #0a0a0a; border-radius: 10px; border: 1px solid rgba(0,255,0,0.15); overflow: hidden; }
+.ping-output-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: #111; border-bottom: 1px solid rgba(0,255,0,0.1); color: #0f0; font-size: 12px; font-family: 'Consolas', monospace; }
+.ping-dot { width: 10px; height: 10px; border-radius: 50%; background: #0f0; display: inline-block; animation: blink 1s infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.ping-timestamp { margin-left: auto; color: #666; font-size: 11px; }
+.ping-console { background: #0a0a0a; color: #0f0; padding: 20px; font-size: 13px; font-family: 'Consolas', 'Monaco', monospace; line-height: 1.7; white-space: pre-wrap; word-break: break-all; margin: 0; max-height: 500px; overflow-y: auto; }
+.ping-console .prompt { color: #0f0; font-weight: bold; margin-right: 8px; user-select: none; }
+
 /* ===== Tooltip style ===== */
 [data-tooltip] {
     position: relative;

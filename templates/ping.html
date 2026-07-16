@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Ping 网络诊断{% endblock %}
+{% block content %}
+<div class="card ping-card">
+    <h2>🌐 Ping 网络诊断</h2>
+    <p class="login-desc">输入 IP 地址或域名进行网络连通性测试</p>
+
+    <form method="post" action="/ping" class="ping-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-group">
+            <label for="ip">目标地址</label>
+            <div class="ping-input-group">
+                <input type="text" id="ip" name="ip" class="search-input"
+                       placeholder="例如: 8.8.8.8 或 google.com" required>
+                <button type="submit" class="btn btn-search">Ping</button>
+            </div>
+        </div>
+    </form>
+
+    {% if error %}
+        <div class="error-msg">⚠️ {{ error }}</div>
+    {% endif %}
+
+    {% if result %}
+        <div class="ping-output">
+            <div class="ping-output-header">
+                <span class="ping-dot"></span>
+                <span>Ping 输出结果</span>
+                <span class="ping-timestamp">$(date +%H:%M:%S)</span>
+            </div>
+            <pre class="ping-console"><span class="prompt">$</span> {{ result }}</pre>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
