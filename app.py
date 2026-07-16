@@ -760,7 +760,7 @@ def fetch_url():
 
 
 # ============================================================
-# 路由：Ping 网络诊断（命令注入漏洞演示）
+# 路由：Ping 网络诊断（已修复命令注入）
 # ============================================================
 @app.route("/ping", methods=["GET", "POST"])
 def ping():
@@ -771,21 +771,37 @@ def ping():
     error = None
 
     if request.method == "POST":
-        ip = request.form.get("ip", "")
+        ip = request.form.get("ip", "").strip()
         if ip:
-            try:
-                command = f"ping -c 3 {ip}"
-                print(f"[PING] {session['username']} 执行命令: {command}")
-                result = subprocess.check_output(command, shell=True, timeout=30, stderr=subprocess.STDOUT)
-                result = result.decode("utf-8", errors="replace")
-                print(f"[PING] 执行成功，输出 {len(result)} 字符")
-            except subprocess.CalledProcessError as e:
-                result = e.output.decode("utf-8", errors="replace")
-                error = f"命令执行返回非零退出码: {e.returncode}"
-            except subprocess.TimeoutExpired:
-                error = "命令执行超时（30秒）"
-            except Exception as e:
-                error = f"执行出错: {e}"
+            # 1. 校验：只允许合法的 IP 或域名
+            import re as _re
+            is_ip = _re.match(r'^(\d{1,3}\.){3}\d{1,3}$', ip)
+            is_domain = _re.match(r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$', ip)
+            # 也允许 localhost
+            is_localhost = ip.lower() == "localhost"
+
+            if not (is_ip or is_domain or is_localhost):
+                error = f"无效的地址: {ip}，请输入合法的 IP 地址或域名"
+                print(f"[PING-BLOCKED] {session['username']} 尝试注入: {ip}")
+            else:
+                try:
+                    # 2. 使用 shell=False + 参数列表，防止命令注入
+                    command = ["ping", "-c", "3", ip]
+                    print(f"[PING] {session['username']} 执行: {' '.join(command)}")
+                    result = subprocess.check_output(command, shell=False, timeout=30, stderr=subprocess.STDOUT)
+                    result = result.decode("utf-8", errors="replace")
+                    print(f"[PING] 执行成功，输出 {len(result)} 字符")
+                except subprocess.CalledProcessError as e:
+                    result = e.output.decode("utf-8", errors="replace") if e.output else ""
+                    error = f"命令执行返回非零退出码: {e.returncode}"
+                except subprocess.TimeoutExpired:
+                    error = "命令执行超时（30秒）"
+                except FileNotFoundError:
+                    error = "系统未找到 ping 命令"
+                except Exception as e:
+                    error = f"执行出错: {e}"
+
+    return render_template("ping.html", result=result, error=error, csrf_token=generate_csrf())
 
     return render_template("ping.html", result=result, error=error, csrf_token=generate_csrf())
 
