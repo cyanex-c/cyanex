@@ -4,12 +4,14 @@
 """
 import os
 import re
+import json
 import time
 import secrets
 import sqlite3
 import socket
 import subprocess
 import platform
+import xml.etree.ElementTree as ET
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -803,7 +805,64 @@ def ping():
 
     return render_template("ping.html", result=result, error=error, csrf_token=generate_csrf())
 
-    return render_template("ping.html", result=result, error=error, csrf_token=generate_csrf())
+
+# ============================================================
+# 路由：XML 数据导入（XXE 漏洞演示）
+# ============================================================
+@app.route("/xml-import", methods=["GET", "POST"])
+def xml_import():
+    if "username" not in session:
+        return redirect("/login")
+
+    result_json = None
+    error = None
+
+    if request.method == "POST":
+        xml_data = request.form.get("xml_data", "")
+        if xml_data.strip():
+            try:
+                # 1. 提取所有 ENTITY 定义（实体名 -> 文件路径）
+                entity_defs = re.findall(r'<!ENTITY\s+(\S+)\s+SYSTEM\s+"([^"]+)"', xml_data)
+
+                # 2. 读取文件内容
+                file_contents = {}
+                for entity_name, filepath in entity_defs:
+                    print(f"[XML-IMPORT] {session['username']} XXE读取: {entity_name} -> {filepath}")
+                    try:
+                        with open(filepath, "r", encoding="utf-8") as f:
+                            file_contents[entity_name] = f.read()
+                    except Exception as e:
+                        error = f"读取文件失败: {filepath} - {e}"
+
+                # 3. 移除 DOCTYPE 声明（可能跨多行）
+                resolved_xml = re.sub(r'<!DOCTYPE\s+\S+.*?\[.*?\]\s*>', '', xml_data, flags=re.DOTALL)
+                # 也处理无内部子集的简单 DOCTYPE
+                resolved_xml = re.sub(r'<!DOCTYPE\s+\S+\s*>', '', resolved_xml)
+
+                # 4. 替换实体引用为文件内容
+                for entity_name, content in file_contents.items():
+                    resolved_xml = resolved_xml.replace(f"&{entity_name};", content)
+
+                # 4. 删除可能残留的 XML 声明中的 standalone 等
+                resolved_xml = re.sub(r'\s*standalone="[^"]*"', '', resolved_xml)
+
+                # 5. 解析清理后的 XML
+                root = ET.fromstring(resolved_xml)
+                users = []
+                for user_elem in root.findall("user"):
+                    name = user_elem.findtext("name", "")
+                    email = user_elem.findtext("email", "")
+                    users.append({"name": name, "email": email})
+
+                result_json = json.dumps({"status": "success", "users": users}, indent=2, ensure_ascii=False)
+                print(f"[XML-IMPORT] 解析成功: {len(users)} 条记录")
+
+            except ET.ParseError as e:
+                error = f"XML 解析错误: {e}"
+            except Exception as e:
+                error = f"处理失败: {e}"
+
+    return render_template("xml_import.html", result_json=result_json, error=error, csrf_token=generate_csrf())
 
 
 # ============================================================

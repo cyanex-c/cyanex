@@ -942,6 +942,16 @@ a:hover { color: var(--accent-light); }
 .ping-console { background: #0a0a0a; color: #0f0; padding: 20px; font-size: 13px; font-family: 'Consolas', 'Monaco', monospace; line-height: 1.7; white-space: pre-wrap; word-break: break-all; margin: 0; max-height: 500px; overflow-y: auto; }
 .ping-console .prompt { color: #0f0; font-weight: bold; margin-right: 8px; user-select: none; }
 
+/* ===== XML Import ===== */
+.xml-card { max-width: 700px; margin: 0 auto; }
+.xml-textarea { width: 100%; padding: 14px 16px; background: #0d0d1f; border: 1px solid rgba(102,126,234,0.15); border-radius: var(--radius-sm); font-size: 13px; font-family: 'Consolas', 'Monaco', monospace; color: #c8d6e5; outline: none; transition: var(--transition); resize: vertical; min-height: 200px; line-height: 1.6; tab-size: 2; }
+.xml-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(102,126,234,0.1); background: #0a0a1a; }
+.xml-textarea::placeholder { color: #555; }
+.xml-output { margin-top: 20px; background: #0d0d1f; border-radius: 10px; border: 1px solid rgba(102,126,234,0.15); overflow: hidden; }
+.xml-output-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(102,126,234,0.06); border-bottom: 1px solid rgba(102,126,234,0.1); color: var(--accent-light); font-size: 12px; font-family: 'Consolas', monospace; }
+.xml-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.xml-console { background: #0a0a12; color: #c8d6e5; padding: 20px; font-size: 13px; font-family: 'Consolas', 'Monaco', monospace; line-height: 1.6; white-space: pre-wrap; word-break: break-all; margin: 0; max-height: 500px; overflow-y: auto; }
+
 /* ===== Tooltip style ===== */
 [data-tooltip] {
     position: relative;
