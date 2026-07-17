@@ -807,7 +807,7 @@ def ping():
 
 
 # ============================================================
-# 路由：XML 数据导入（XXE 漏洞演示）
+# 路由：XML 数据导入（已修复 XXE 漏洞）
 # ============================================================
 @app.route("/xml-import", methods=["GET", "POST"])
 def xml_import():
@@ -821,33 +821,14 @@ def xml_import():
         xml_data = request.form.get("xml_data", "")
         if xml_data.strip():
             try:
-                # 1. 提取所有 ENTITY 定义（实体名 -> 文件路径）
-                entity_defs = re.findall(r'<!ENTITY\s+(\S+)\s+SYSTEM\s+"([^"]+)"', xml_data)
+                # 1. 检查是否包含 DOCTYPE/ENTITY（XXE 攻击特征）
+                if re.search(r'<!DOCTYPE|<!ENTITY', xml_data, re.IGNORECASE):
+                    error = "XML 中包含不允许的 DOCTYPE 或 ENTITY 声明，已拒绝处理"
+                    print(f"[XML-IMPORT-BLOCKED] {session['username']} 尝试XXE攻击: {xml_data[:100]}")
+                    return render_template("xml_import.html", result_json=result_json, error=error, csrf_token=generate_csrf())
 
-                # 2. 读取文件内容
-                file_contents = {}
-                for entity_name, filepath in entity_defs:
-                    print(f"[XML-IMPORT] {session['username']} XXE读取: {entity_name} -> {filepath}")
-                    try:
-                        with open(filepath, "r", encoding="utf-8") as f:
-                            file_contents[entity_name] = f.read()
-                    except Exception as e:
-                        error = f"读取文件失败: {filepath} - {e}"
-
-                # 3. 移除 DOCTYPE 声明（可能跨多行）
-                resolved_xml = re.sub(r'<!DOCTYPE\s+\S+.*?\[.*?\]\s*>', '', xml_data, flags=re.DOTALL)
-                # 也处理无内部子集的简单 DOCTYPE
-                resolved_xml = re.sub(r'<!DOCTYPE\s+\S+\s*>', '', resolved_xml)
-
-                # 4. 替换实体引用为文件内容
-                for entity_name, content in file_contents.items():
-                    resolved_xml = resolved_xml.replace(f"&{entity_name};", content)
-
-                # 4. 删除可能残留的 XML 声明中的 standalone 等
-                resolved_xml = re.sub(r'\s*standalone="[^"]*"', '', resolved_xml)
-
-                # 5. 解析清理后的 XML
-                root = ET.fromstring(resolved_xml)
+                # 2. 解析 XML（已禁止 DOCTYPE，不存在 XXE 风险）
+                root = ET.fromstring(xml_data)
                 users = []
                 for user_elem in root.findall("user"):
                     name = user_elem.findtext("name", "")
